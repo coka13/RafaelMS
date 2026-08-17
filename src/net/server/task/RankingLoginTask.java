@@ -58,7 +58,8 @@ public class RankingLoginTask implements Runnable {
             charSelect.setInt(2, job);
         }
         ResultSet rs = charSelect.executeQuery();
-        PreparedStatement ps = con.prepareStatement("UPDATE characters SET " + (job != -1 ? "jobRank = ?, jobRankMove = ? " : "rank = ?, rankMove = ? ") + "WHERE id = ?");
+        // `rank` is a reserved word since MySQL 8.0, must be backtick-escaped
+        PreparedStatement ps = con.prepareStatement("UPDATE characters SET " + (job != -1 ? "jobRank = ?, jobRankMove = ? " : "`rank` = ?, rankMove = ? ") + "WHERE id = ?");
         int rank = 0;
         
         while (rs.next()) {
