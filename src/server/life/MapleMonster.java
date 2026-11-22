@@ -104,6 +104,7 @@ public class MapleMonster extends AbstractLoadedMapleLife {
     private Set<Integer> calledMobOids = null;
     private WeakReference<MapleMonster> callerMob = new WeakReference<>(null);
     private List<Integer> stolenItems = new ArrayList<>(5);
+    private boolean stealAttempted = false;
     private int team;
     private int parentMobOid = 0;
     private int spawnEffect = 0;
@@ -382,7 +383,7 @@ public class MapleMonster extends AbstractLoadedMapleLife {
     
     public void broadcastMobHpBar(MapleCharacter from) {
         if (hasBossHPBar()) {
-            from.setPlayerAggro(this.hashCode());
+            from.aggroBossHpBar(this.hashCode());
             from.getMap().broadcastBossHpMessage(this, this.hashCode(), makeBossHPBarPacket(), getPosition());
         } else if (!isBoss()) {
             int remainingHP = (int) Math.max(1, hp.get() * 100f / getMaxHp());
@@ -1698,7 +1699,15 @@ public class MapleMonster extends AbstractLoadedMapleLife {
         return stats.getName();
     }
 
-    public void addStolen(int itemId) {
+    public synchronized boolean tryMarkStolen() {   // one steal attempt per mob
+        if (stealAttempted) {
+            return false;
+        }
+        stealAttempted = true;
+        return true;
+    }
+
+    public synchronized void addStolen(int itemId) {
         stolenItems.add(itemId);
     }
 

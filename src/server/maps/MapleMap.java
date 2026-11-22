@@ -760,6 +760,18 @@ public class MapleMap {
         final List<MonsterDropEntry> otherQuestEntry = new ArrayList<>();
         
         List<MonsterDropEntry> lootEntry = YamlConfig.config.server.USE_SPAWN_RELEVANT_LOOT ? mob.retrieveRelevantDrops() : mi.retrieveEffectiveDrop(mob.getId());
+        List<Integer> stolenItems = mob.getStolen();
+        if (!stolenItems.isEmpty()) {   // items already taken through Steal are not dropped again
+            lootEntry = new ArrayList<>(lootEntry);
+            for (Integer stolenId : stolenItems) {
+                for (Iterator<MonsterDropEntry> it = lootEntry.iterator(); it.hasNext(); ) {
+                    if (it.next().itemId == stolenId) {
+                        it.remove();
+                        break;
+                    }
+                }
+            }
+        }
         sortDropEntries(lootEntry, dropEntry, visibleQuestEntry, otherQuestEntry, chr);     // thanks Articuno, Limit, Rohenn for noticing quest loots not showing up in only-quest item drops scenario
         
         if (lootEntry.isEmpty()) {   // thanks resinate

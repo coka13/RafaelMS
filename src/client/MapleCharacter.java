@@ -337,6 +337,7 @@ public class MapleCharacter extends AbstractMapleCharacterObject {
     private short extraRecInterval;
     private int targetHpBarHash = 0;
     private long targetHpBarTime = 0;
+    private long ownTargetHpBarTime = 0;
     private long nextWarningTime = 0;
     private int banishMap = -1;
     private int banishSp = -1;
@@ -5470,6 +5471,16 @@ public class MapleCharacter extends AbstractMapleCharacterObject {
         setTargetHpBarTime(System.currentTimeMillis());
     }
     
+    // Called when this player hits a boss with an HP bar. Keeps the bar locked on the boss the player has been
+    // hitting, so attacks that hit several bosses at once don't make the HP bar flip between them every hit.
+    public synchronized void aggroBossHpBar(int mobHash) {
+        long timeNow = System.currentTimeMillis();
+        if (targetHpBarHash == 0 || targetHpBarHash == mobHash || timeNow - ownTargetHpBarTime >= 5 * 1000) {
+            setPlayerAggro(mobHash);
+            ownTargetHpBarTime = timeNow;
+        }
+    }
+    
     public void resetPlayerAggro() {
         if(getWorldServer().unregisterDisabledServerMessage(id)) {
             client.announceServerMessage();
@@ -5477,6 +5488,7 @@ public class MapleCharacter extends AbstractMapleCharacterObject {
         
         setTargetHpBarHash(0);
         setTargetHpBarTime(0);
+        ownTargetHpBarTime = 0;
     }
     
     public MapleMiniGame getMiniGame() {
@@ -11003,7 +11015,7 @@ public class MapleCharacter extends AbstractMapleCharacterObject {
     public int checkWorldTransferEligibility() {
         if(getLevel() < 20) {
             return 2;
-        } else if(getClient().getTempBanCalendar() != null && getClient().getTempBanCalendar().getTimeInMillis() + (30*24*60*60*1000) < Calendar.getInstance().getTimeInMillis()) {
+        } else if(getClient().getTempBanCalendar() != null && getClient().getTempBanCalendar().getTimeInMillis() + (30L*24*60*60*1000) > Calendar.getInstance().getTimeInMillis()) {
             return 3;
         } else if(isMarried()) {
             return 4;

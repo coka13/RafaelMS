@@ -417,7 +417,7 @@ public final class CashOperationHandler extends AbstractMaplePacketHandler {
                             c.announce(MaplePacketCreator.showCashShopMessage((byte)0));
                             c.enableCSActions();
                             return;
-                        } else if(c.getTempBanCalendar() != null && c.getTempBanCalendar().getTimeInMillis() + (30*24*60*60*1000) > Calendar.getInstance().getTimeInMillis()) {
+                        } else if(c.getTempBanCalendar() != null && c.getTempBanCalendar().getTimeInMillis() + (30L*24*60*60*1000) > Calendar.getInstance().getTimeInMillis()) {
                             c.announce(MaplePacketCreator.showCashShopMessage((byte)0));
                             c.enableCSActions();
                             return;

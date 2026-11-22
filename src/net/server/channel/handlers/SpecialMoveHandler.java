@@ -94,17 +94,24 @@ public final class SpecialMoveHandler extends AbstractMaplePacketHandler {
             for (int i = 0; i < num; i++) {
                 int mobOid = slea.readInt();
                 byte success = slea.readByte();
-                chr.getMap().broadcastMessage(chr, MaplePacketCreator.catchMonster(mobOid, success), false);
                 MapleMonster monster = chr.getMap().getMonsterByOid(mobOid);
-                if (monster != null) {
-                    if (!monster.isBoss()) {
-                        monster.aggroClearDamages();
-                        monster.aggroMonsterDamage(chr, 1);
-                        
-                        // thanks onechord for pointing out Magnet crashing the caster (issue would actually happen upon failing to catch mob)
-                        // thanks Conrad for noticing Magnet crashing when trying to pull bosses and fixed mobs
-                        monster.aggroSwitchController(chr, true);
-                    }
+                if (monster == null) {
+                    continue;
+                }
+                
+                // fixed (immobile) mobs and bosses can't be pulled: broadcasting a "caught" state or handing control of them crashes clients
+                boolean pullable = monster.isMobile() && !monster.isBoss();
+                if (!pullable) {
+                    success = 0;
+                }
+                chr.getMap().broadcastMessage(chr, MaplePacketCreator.catchMonster(mobOid, success), false);
+                if (pullable) {
+                    monster.aggroClearDamages();
+                    monster.aggroMonsterDamage(chr, 1);
+
+                    // thanks onechord for pointing out Magnet crashing the caster (issue would actually happen upon failing to catch mob)
+                    // thanks Conrad for noticing Magnet crashing when trying to pull bosses and fixed mobs
+                    monster.aggroSwitchController(chr, true);
                 }
             }
             byte direction = slea.readByte();   // thanks MedicOP for pointing some 3rd-party related issues with Magnet

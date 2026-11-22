@@ -339,9 +339,8 @@ public abstract class AbstractDealDamageHandler extends AbstractMaplePacketHandl
                         player.addHP(Math.min(monster.getMaxHp(), Math.min((int) ((double) totDamage * (double) SkillFactory.getSkill(attack.skill).getEffect(player.getSkillLevel(SkillFactory.getSkill(attack.skill))).getX() / 100.0), player.getCurrentMaxHp() / 2)));
                     } else if (attack.skill == Bandit.STEAL) {
                         Skill steal = SkillFactory.getSkill(Bandit.STEAL);
-                        if (monster.getStolen().size() < 1) { // One steal per mob <3
-                            if (steal.getEffect(player.getSkillLevel(steal)).makeChanceResult()) {
-                                monster.addStolen(0);
+                        if (steal.getEffect(player.getSkillLevel(steal)).makeChanceResult()) {
+                            if (monster.tryMarkStolen()) { // One steal per mob <3
                                 
                                 MapleMonsterInformationProvider mi = MapleMonsterInformationProvider.getInstance();
                                 List<Integer> dropPool = mi.retrieveDropPool(monster.getId());
@@ -898,7 +897,13 @@ public abstract class AbstractDealDamageHandler extends AbstractMaplePacketHandl
                     }
 
                     if(ret.skill == Marksman.SNIPE) {
-                            damage = 195000 + Randomizer.nextInt(5000);
+                            // Snipe deals a fixed 195000~199999 hit: keep the value the attacker's client rolled (so what it displays is what is
+                            // applied and broadcast), only clamping it into the legit range.
+                            int rawDamage = damage < 0 ? damage + Integer.MAX_VALUE + 1 : damage;   // client may send it crit-flagged
+                            if (rawDamage < 195000 || rawDamage > 199999) {
+                                rawDamage = Math.max(195000, Math.min(199999, rawDamage));
+                            }
+                            damage = rawDamage;
                             hitDmgMax = 200000;
                     } else if (ret.skill == Beginner.BAMBOO_RAIN || ret.skill == Noblesse.BAMBOO_RAIN || ret.skill == Evan.BAMBOO_THRUST || ret.skill == Legend.BAMBOO_THRUST) {
                         hitDmgMax = 82569000; // 30% of Max HP of strongest Dojo boss
