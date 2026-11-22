@@ -38,6 +38,7 @@ RafaelMS is HeavenMS plus the following changes. Everything else (gameplay syste
 | **Server setup** | GUI/silent wizard that installs Java and MySQL, imports the database, writes `config.yaml`, compiles the server and opens the firewall | `setup-server.bat`, `setup/ServerSetupWizard.ps1` |
 | **Client** | Inno Setup installer for the unmodified Nexon v83 client + MapleEzorsia v2 (`dinput8.dll`). No third-party localhost `.exe`. | `installer/RafaelMS-Client.iss` |
 | **Config** | New keys `WEB_REGISTER`, `WEB_PORT`, `WEB_REGISTER_REQUIRED` | `config.yaml`, `src/config/ServerConfig.java` |
+| **Gameplay fixes** | Steal no longer drops the stolen item again on death. Monster Magnet ignores fixed mobs and bosses (client crash). Snipe's shown damage matches the damage dealt. The boss HP bar no longer flickers when one attack hits several bosses. The 30-day temp-ban check for name change and world transfer works. | `AbstractDealDamageHandler.java`, `SpecialMoveHandler.java`, `MapleMap.java`, `MapleMonster.java`, `MapleCharacter.java`, `TransferNameHandler.java` |
 
 ---
 
@@ -304,7 +305,7 @@ These work the same as in upstream HeavenMS:
 
 ## Known Issues
 
-- **Upstream issues.** Possible deadlocks after long uptime, some skills shown wrong to other players, Steal not removing loot, MTS incomplete. Full list: [`docs/issues.txt`](docs/issues.txt).
+- **Upstream issues.** Possible deadlocks after long uptime, and some skills (Dragon Roar stun, pet commands, some magic attacks) shown wrong to other players. Medal quests, Mystic Door placement and an autoban review are still open. Full list: [`docs/issues.txt`](docs/issues.txt).
 - **Client.** Full screen isn't supported (see [Client notes](#client-notes)).
 - **Registration.** The page uses plain HTTP, so passwords cross the network unencrypted. Put a TLS reverse proxy in front for public servers.
 
