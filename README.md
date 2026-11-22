@@ -1,312 +1,254 @@
-﻿<p align="center">
-  <img src="https://heavenmssurveyhome.files.wordpress.com/2018/12/heavenmslogo.png" width="370" alt="HeavenMS logo">
-</p>
-
-<h1 align="center">HeavenMS</h1>
+﻿<h1 align="center">RafaelMS</h1>
 
 <p align="center">
-  Open-source MapleStory v83 private server emulator with extensive gameplay fixes, scripting, and configuration options.
-</p>
-
-<p align="center">
-  <strong>Head developer:</strong> Ronan C. P. Lana
+  A MapleStory v83 private server based on <a href="https://github.com/ronancpl/HeavenMS">HeavenMS</a>, with web account registration, a one-click server setup wizard and a Windows client installer.
 </p>
 
 ---
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
+- [What RafaelMS adds](#what-rafaelms-adds)
 - [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Database Setup](#database-setup)
+- [Quick Start (Windows)](#quick-start-windows)
+- [Server Setup Wizard](#server-setup-wizard)
+- [Account Registration](#account-registration)
+- [Client and Installer](#client-and-installer)
 - [Configuration](#configuration)
-- [Building the Server](#building-the-server)
-- [Running the Server](#running-the-server)
-- [Client Setup](#client-setup)
-- [Project Structure](#project-structure)
-- [Scripting](#scripting)
-- [Development Tools](#development-tools)
+- [Manual Setup](#manual-setup)
 - [Networking and Ports](#networking-and-ports)
 - [Administration](#administration)
-- [WZ Data and Synchronization](#wz-data-and-synchronization)
+- [Project Structure](#project-structure)
+- [Scripting and WZ Data](#scripting-and-wz-data)
 - [Known Issues](#known-issues)
-- [HeavenClient](#heavenclient)
-- [Contributing and Support](#contributing-and-support)
-- [License and Disclaimer](#license-and-disclaimer)
+- [Credits and License](#credits-and-license)
 
 ---
 
-## Overview
+## What RafaelMS adds
 
-HeavenMS is a Java-based MapleStory **v83** server emulator derived from the OdinMS / MapleSolaxia lineage. It aims to recreate the pre-Big Bang MapleStory experience while fixing many gameplay issues found in both the original WZ data and server source.
+RafaelMS is HeavenMS plus the following changes. Everything else (gameplay systems, scripts, WZ data, tools) is upstream HeavenMS. For the full upstream feature list, see [`docs/feature_list.md`](docs/feature_list.md).
 
-This is **not** a drop-in replacement for stock v83 WZ files. HeavenMS includes server-side fixes, edited WZ/XML data, and custom behaviors. For the best experience, use the **provided WZ set** from the official HeavenMS resources rather than mixing clean Nexon files with partial custom data.
-
-### Credits
-
-| Role | Contributors |
-|------|--------------|
-| Head developer | Ronan C. P. Lana |
-| Freelance developer | Vcoc |
-| Contributors | Thora, GabrielSin, Masterrulax, MedicOP |
-| Additional patches | shavit, kolakcc (Familiar), Dragohe4rt, Jayd, Ubaware, and many others |
-
-MapleStory and all related IP are owned by **Wizet / Nexon**. This project is a community emulator and is not affiliated with Nexon.
-
----
-
-## Features
-
-HeavenMS ships with a large set of gameplay systems and fixes. Highlights include:
-
-### Gameplay Systems
-
-- Multi-world and multi-channel architecture with per-world rates
-- Party Quests, expeditions, Monster Carnival, Guild PQ, Dojo, and custom PQs (BossRush, CafePQ)
-- Guild, alliance, marriage, family, and wedding systems
-- Cash shop, coupons, Duey, Fredrick storage, and player shops / hired merchants
-- Equipment leveling, Maker skill, pet autopot, inventory sort/merge, and storage arrange
-- Player NPCs, Hall of Fame, rankings, and party search
-- Bcrypt password hashing, auto-registration, PIN/PIC bypass, and login anti-abuse coordination
-
-### Server Engineering
-
-- YAML-based configuration (`config.yaml`) with hundreds of toggles
-- HikariCP connection pooling and Java thread pool task management
-- Rhino/JavaScript scripting for NPCs, quests, portals, reactors, events, and items
-- Server-side WZ/XML data under `wz/` for maps, mobs, items, skills, and more
-- 30+ maintenance and content tools under `tools/`
-
-For a detailed feature breakdown, see [`docs/feature_list.md`](docs/feature_list.md).
+| Area | Change | Files |
+|------|--------|-------|
+| **Account registration** | Built-in web server hosts a sign-up page. The client's **Register** button opens it. | `src/net/server/web/RegisterWebServer.java`, `web/` |
+| **Login** | `WEB_REGISTER_REQUIRED` allows only accounts created on the website to log in. `AUTOMATIC_REGISTER` is off. | `LoginPasswordHandler.java`, `AcceptToSHandler.java` |
+| **Database** | New `accounts.webregistered` column | `sql/db_database.sql` |
+| **Character creation** | Explorers only. Cygnus and Aran are hidden in the client, and any job request creates an Explorer, so the client no longer gets stuck on the race screen. | `CreateCharHandler.java` |
+| **Server setup** | GUI/silent wizard that installs Java and MySQL, imports the database, writes `config.yaml`, compiles the server and opens the firewall | `setup-server.bat`, `setup/ServerSetupWizard.ps1` |
+| **Client** | Inno Setup installer for the unmodified Nexon v83 client + MapleEzorsia v2 (`dinput8.dll`). No third-party localhost `.exe`. | `installer/RafaelMS-Client.iss` |
+| **Config** | New keys `WEB_REGISTER`, `WEB_PORT`, `WEB_REGISTER_REQUIRED` | `config.yaml`, `src/config/ServerConfig.java` |
 
 ---
 
 ## Requirements
 
-| Component | Version / Notes |
-|-----------|-----------------|
-| **Java** | **JDK 8** (Java 7 is no longer supported) |
-| **MySQL / MariaDB** | 5.x or compatible (tested with local MySQL) |
-| **RAM** | 2 GB minimum for the JVM (`-Xmx2048m` in launch scripts) |
-| **IDE** (recommended) | NetBeans, IntelliJ IDEA, or Eclipse |
-| **Client** | MapleStory v83 client + modified localhost (see [Client Setup](#client-setup)) |
-| **WZ files** | Server `wz/` XML set + matching client WZ recommended |
-
-### Dependencies
-
-Runtime JARs live in the `cores/` directory and are loaded at startup:
-
-```
-cores/
-  mina-core-*.jar
-  slf4j-api-*.jar
-  slf4j-jdk14-*.jar
-  yamlbeans-*.jar
-  mysql-connector-*.jar
-  hikaricp-*.jar
-  ... (and other bundled libraries)
-```
-
-Compiled server classes are expected in `dist/`.
+| Component | Notes |
+|-----------|-------|
+| **OS** | Windows 10/11 for the setup wizard and installer. The server itself also runs on Linux. |
+| **Java** | JDK 8 (the wizard installs it if it's missing) |
+| **MySQL** | 5.x or 8.x (the wizard installs it if it's missing) |
+| **RAM** | About 2 GB for the JVM (`-Xmx2048m`, configurable in the wizard) |
+| **Client** | Built by the installer in [`installer/`](installer/). See [Client and Installer](#client-and-installer). |
 
 ---
 
-## Quick Start
+## Quick Start (Windows)
 
-1. **Clone** this repository.
-2. **Install** MySQL and create the `heavenms` database (see [Database Setup](#database-setup)).
-3. **Edit** `config.yaml` with your database credentials and server IP.
-4. **Build** the project (see [Building the Server](#building-the-server)).
-5. **Run** `launch.bat` (Windows) or `linux-launch.sh` (Linux).
-6. **Connect** with a v83 localhost client pointed at your server IP.
+1. **Clone** the repo:
+   ```bat
+   git clone https://github.com/coka13/RafaelMS.git
+   ```
+2. **Run** `setup-server.bat` and follow the wizard (see [Server Setup Wizard](#server-setup-wizard)). It asks for administrator rights.
+3. **Start** the server with `launch.bat`. You should see:
+   ```
+   Listening on port 8484
+   Registration page on http://<HOST>/register.html
+   HeavenMS is now online.
+   ```
+4. **Create an account** at `http://<HOST>/register.html`, or click **Register** on the client's login screen.
+5. **Install the client** with `RafaelMS-Client-Setup.exe`, enter the server IP and log in.
 
 ---
 
-## Database Setup
+## Server Setup Wizard
 
-Execute the SQL scripts **in order** from the `sql/` directory:
+`setup-server.bat` runs [`setup/ServerSetupWizard.ps1`](setup/ServerSetupWizard.ps1). It does the following:
 
-| Order | File | Required | Description |
-|-------|------|----------|-------------|
-| 1 | `db_database.sql` | Yes | Creates the `heavenms` schema, tables, and base data |
-| 2 | `db_drops.sql` | Yes | Populates drop tables |
-| 3 | `db_shopupdate.sql` | Optional | Updates NPC shops with custom goods (requires provided WZs) |
+1. Checks for the Java 8 JDK and MySQL, and installs missing ones with `winget`
+2. Starts the MySQL service if it's stopped
+3. Imports `sql/db_database.sql`, `db_drops.sql` and `db_shopupdate.sql` in order. If a `heavenms` database already exists, it's backed up with `mysqldump` before being replaced.
+4. Relaxes MySQL `sql_mode` (HeavenMS relies on zero dates and non-strict inserts)
+5. Creates a dedicated DB user with `mysql_native_password`, which the bundled Connector/J 5.1 driver needs on MySQL 8
+6. Writes `DB_URL`, `DB_USER`, `DB_PASS`, `HOST` and `LOCALSERVER` into `config.yaml`
+7. Compiles `src/` into `dist/` when needed
+8. Points `launch.bat` at the detected JDK and sets the JVM heap
+9. Opens Windows Firewall for the registration page (80), the login port (8484) and every channel port
+10. Tests the database login with the server's own JDBC driver
 
-### Example (MySQL CLI)
+Logs go to `setup/logs/` and database backups to `setup/backups/` (both are gitignored).
+
+### Unattended run
+
+```bat
+setup-server.bat -Silent -AdminPassword "rootpw" -ServerIp 203.0.113.10
+```
+
+Useful switches: `-ExistingDatabase Keep|Recreate`, `-DbUser`, `-DbPassword` (random if empty), `-UseAdminForServer`, `-Build Auto|Always|Never`, `-HeapMB 2048`, `-SkipFirewall`, `-SkipShopUpdate`, `-SkipSqlMode`, `-SkipLaunchScript`, `-SkipDriverTest`.
+
+---
+
+## Account Registration
+
+The server runs a small HTTP server (`RegisterWebServer`) next to the game server. It serves the files in `web/` and handles `POST /register`.
+
+- **Page:** `http://<HOST>/register.html` (`web/register.html` and `web/bg.jpg`)
+- **Username:** 4–12 letters or digits
+- **Password:** 6–12 printable characters, no spaces. Stored with bcrypt (cost 12).
+- **Email:** optional
+- **Rate limits per IP:** 3 accounts and 30 attempts per hour
+
+Accounts created on the page get `webregistered = 1`. With `WEB_REGISTER_REQUIRED: true`, any other account gets "not a registered ID" at login.
+
+### Upgrading an existing database
+
+If your `heavenms` database is older than this change, add the column and mark the accounts you want to keep, such as your GM account:
 
 ```sql
-SOURCE /path/to/HeavenMS/sql/db_database.sql;
-SOURCE /path/to/HeavenMS/sql/db_drops.sql;
--- Optional:
-SOURCE /path/to/HeavenMS/sql/db_shopupdate.sql;
+ALTER TABLE accounts ADD COLUMN webregistered TINYINT(1) NOT NULL DEFAULT 0 AFTER email;
+UPDATE accounts SET webregistered = 1 WHERE name = 'YourAdminAccount';
 ```
 
-### Database user
+### Port 80 in use?
 
-Create a MySQL user with access to the `heavenms` database and set matching credentials in `config.yaml`:
+If the console prints `Could not start the registration web server on port 80`, another program (IIS, Skype or another web server) is using the port. Change `WEB_PORT` in `config.yaml`, and set `RegisterURL` in the client's `config.ini` to match.
 
-```yaml
-server:
-  DB_URL: "jdbc:mysql://localhost:3306/heavenms?characterEncoding=UTF-8&useSSL=false"
-  DB_USER: "your_user"
-  DB_PASS: "your_password"
+---
+
+## Client and Installer
+
+The client is the **unmodified, Nexon-signed v83 `MapleStory.exe`** plus **MapleEzorsia v2** loaded as `dinput8.dll`. Ezorsia patches the client in memory and connects to `ServerIP_Address` from `config.ini`, so no hex-edited localhost is needed, which avoids antivirus false positives.
+
+### For players
+
+1. Run `RafaelMS-Client-Setup.exe`. It installs per user with no admin prompt, unless the VC++ runtime has to be installed.
+2. Enter the server IPv4 address on the **Server address** page (pre-filled with the default).
+3. Start RafaelMS from the Start menu or desktop. `MapleStory.exe` asks for administrator rights (UAC).
+
+To change the server later, edit `ServerIP_Address` in `config.ini`. The Start menu has a **Client settings (config.ini)** shortcut.
+
+Silent install with a preset server:
+
+```bat
+RafaelMS-Client-Setup.exe /SILENT /SERVER=203.0.113.10
 ```
 
-### First account
+### Building the installer
 
-By default, `AUTOMATIC_REGISTER: true` lets players create accounts on first login. Alternatively, insert a row manually into the `accounts` table.
+The script is [`installer/RafaelMS-Client.iss`](installer/RafaelMS-Client.iss) (Inno Setup 6). It expects:
+
+| Input | Location |
+|-------|----------|
+| Client files (`MapleStory.exe`, `dinput8.dll`, `config.ini`, `*.wz`, DLLs, `Icon.ico`) | `ClientSrc`, default `C:\Nexon\RafaelMS-Client` |
+| VC++ 2015–2022 x86 runtime | `installer/redist/vc_redist.x86.exe` (not in git) |
+
+```bat
+cd installer
+"%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" /DDefaultServer="203.0.113.10" RafaelMS-Client.iss
+```
+
+The output is `installer/Output/RafaelMS-Client-Setup.exe` (gitignored, about 1.5 GB). Set `DefaultServer` to your public IP for releases, so players can just click Next.
+
+### Client notes
+
+- **Windowed only.** v83 full screen fails on some PCs with `error code -2147467259 (Unspecified error)`, so the installer keeps the default Ezorsia 1280×720 window.
+- **Explorers only.** The client's `UI.wz` hides the Cygnus and Aran buttons, and the server creates an Explorer for any job.
 
 ---
 
 ## Configuration
 
-All server settings are loaded from **`config.yaml`** at startup via `config.YamlConfig`.
+All settings live in **`config.yaml`** (types in `src/config/ServerConfig.java` and `WorldConfig.java`). Each option is commented inline.
 
-### World settings
+### RafaelMS settings
 
-Each world entry controls name, channel count, and rates:
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `WEB_REGISTER` | `true` | Serve the registration page |
+| `WEB_PORT` | `80` | Port of the registration page (the client opens port 80 by default) |
+| `WEB_REGISTER_REQUIRED` | `true` | Only accounts created on the page can log in |
+| `AUTOMATIC_REGISTER` | `false` | Upstream auto-register on first login (off, because the website handles sign-ups) |
 
-```yaml
-worlds:
-  - flag: 0
-    server_message: Welcome to Scania!
-    event_message: Scania!
-    why_am_i_recommended: Welcome to Scania!
-    channels: 3
-    exp_rate: 10
-    meso_rate: 10
-    drop_rate: 10
-    boss_drop_rate: 10
-    quest_rate: 5
-    fishing_rate: 10
-    travel_rate: 10
-```
+### Common settings
 
-Up to 21 worlds can be defined. Only the first `server.WORLDS` entries are loaded at boot.
+| Setting | Description |
+|---------|-------------|
+| `DB_URL` / `DB_USER` / `DB_PASS` | Database connection (written by the wizard). The committed file has an empty `DB_PASS`. |
+| `HOST` | IP sent to clients. Use your LAN or public IP for remote players. |
+| `LOCALSERVER` | `true` for local play |
+| `WORLDS` | Number of worlds to start |
+| `CHANNEL_LOAD` | Max players per channel |
+| `ENABLE_PIC` / `ENABLE_PIN` | Character security features |
 
-### Common server settings
+World name, channel count and rates are set per world under `worlds:`.
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `HOST` | `127.0.0.1` | IP sent to the client during login |
-| `LOCALSERVER` | `true` | Local development mode |
-| `WORLDS` | `1` | Number of worlds to start |
-| `CHANNEL_LOAD` | `100` | Max players per channel |
-| `AUTOMATIC_REGISTER` | `true` | Auto-create accounts on login |
-| `ENABLE_PIC` / `ENABLE_PIN` | `true` | Character delete / security features |
-| `USE_AUTOSAVE` | `true` | Periodic character saves |
-| `TIMEZONE` | `GMT-3` | Server timezone |
-
-The full list of flags (scroll behavior, buff rules, PQ options, wedding settings, etc.) is documented inline in `config.yaml`. Type definitions live in `src/config/ServerConfig.java` and `src/config/WorldConfig.java`.
-
-> **Note:** Older guides refer to `configuration.ini`. This repository uses **`config.yaml`** instead.
+> **Don't commit your real database password.** Your local `config.yaml` will show as modified, so leave it out of commits, or commit it with `DB_PASS: ""`.
 
 ---
 
-## Building the Server
+## Manual Setup
 
-### Option A: NetBeans (recommended in original docs)
+Without the wizard, or on Linux:
 
-1. Create a new project **from existing sources**.
-2. Set the source folder to `src/`.
-3. Add all JARs from `cores/` to the project classpath.
-4. Set the main class to `net.server.Server`.
-5. Run **Clean and Build** — output goes to `dist/`.
-
-### Option B: Command line (manual compile)
-
-From the repository root, with JDK 8 on your PATH:
-
-```bat
-mkdir dist 2>nul
-dir /s /B src\*.java > sources.txt
-javac -encoding UTF-8 -d dist -cp "cores/*" @sources.txt
-```
-
-On Linux/macOS:
-
-```bash
-mkdir -p dist
-find src -name "*.java" > sources.txt
-javac -encoding UTF-8 -d dist -cp "cores/*" @sources.txt
-```
-
-Ensure `dist/` contains the compiled classes before launching.
+1. **Database.** Run these in order: `sql/db_database.sql`, `sql/db_drops.sql`, and optionally `sql/db_shopupdate.sql`. On MySQL 8, create the server's user with `mysql_native_password`, and relax `sql_mode` (remove `STRICT_TRANS_TABLES`, `NO_ZERO_DATE` and `NO_ZERO_IN_DATE`).
+2. **Config.** Set the database credentials and `HOST` in `config.yaml`.
+3. **Compile** (JDK 8):
+   ```bat
+   mkdir dist 2>nul
+   dir /s /B src\*.java > sources.txt
+   javac -encoding UTF-8 -d dist -cp "cores/*" @sources.txt
+   ```
+   ```bash
+   mkdir -p dist && find src -name "*.java" > sources.txt
+   javac -encoding UTF-8 -d dist -cp "cores/*" @sources.txt
+   ```
+4. **Run** from the repo root with `launch.bat` or `./linux-launch.sh`:
+   ```
+   java -Xmx2048m -Dwzpath=wz\ net.server.Server
+   ```
+   `-Dwebpath=<dir>` overrides the folder the registration page is served from (default `web`).
 
 ---
 
-## Running the Server
+## Networking and Ports
 
-Run from the **repository root** so relative paths resolve correctly.
+| Service | Port |
+|---------|------|
+| Registration page (HTTP) | **80** (`WEB_PORT`) |
+| Login server | **8484** |
+| Channels | **7575** through **7575 + channels − 1** |
 
-### Windows
+For players outside your network:
 
-```bat
-launch.bat
-```
+1. Set `HOST` in `config.yaml` to your public IP.
+2. Forward TCP 80, 8484 and the channel ports on your router.
+3. Build the client installer with `/DDefaultServer="<public IP>"`.
 
-### Linux
-
-```bash
-chmod +x linux-launch.sh
-./linux-launch.sh
-```
-
-Both scripts start the server with:
-
-```
-java -Xmx2048m -Dwzpath=wz\ net.server.Server
-```
-
-On Linux, `linux-launch.sh` uses `wz/` as the WZ path separator.
-
-### Successful startup
-
-You should see output similar to:
-
-```
-HeavenMS v83 starting up.
-Listening on port 8484
-```
-
-Channel servers bind starting at port **7575**.
+The wizard adds the Windows Firewall rules (group **RafaelMS Server**) for ports 80, 8484 and the channel ports. If you change `WEB_PORT`, open the new port yourself.
 
 ---
 
-## Client Setup
+## Administration
 
-HeavenMS requires a **v83 MapleStory client** and a **modified localhost executable**. Official client assets and tools are distributed separately:
+Promote a character while it's offline:
 
-- **Server source:** https://github.com/ronancpl/HeavenMS
-- **Client files & tools:** https://drive.google.com/drive/folders/0BzDsHSr-0V4MYVJ0TWIxd05hYUk
+```sql
+UPDATE characters SET gm = 6 WHERE name = 'YourCharacterName';
+```
 
-### Basic client installation
+Type `@commands` in game to list the commands for your GM level (0 = player, 6 = admin). Useful ones: `@rates`, `@warp`, `@item`, `@spawn`, `@notice`, `@exprate`, `@shutdown`. Reload scripts without restarting using `!reloadevents`, `!reloadportals` and `!reloadmap`.
 
-1. Install MapleStory v83 using `ManagerMsv83.exe`.
-2. Remove: `HShield/` folder, `ASPLnchr.exe`, `MapleStory.exe`, and `Patcher.exe`.
-3. Place the modified `localhost.exe` in the client folder.
-4. Overwrite client WZ files with the provided set (`commit397_wz` for stable release, or `current_wz` for latest).
-
-### Pointing the client at your server
-
-- If `HOST` in `config.yaml` is `127.0.0.1`, the default localhost usually works for local play.
-- For a remote IP, hex-edit `localhost.exe` and replace all `127.0.0.1` string occurrences with your server address.
-
-### Antivirus warning
-
-Modified localhost executables are often flagged by antivirus software because of reverse-engineering patches. The community builds linked above have been widely used; scan at your own discretion.
-
-### Windows 8/10 compatibility
-
-If the client fails to open despite the server seeing a connection attempt, try:
-
-- Compatibility mode: Windows 7
-- Run as administrator
-- Use the `lolwut.exe` helper (see Google Drive tools)
-
-Allow Java and the client through Windows Firewall for ports **8484** and **7575–7575+N** (N = number of channels).
+Runtime logs are in `logs/` (gitignored).
 
 ---
 
@@ -314,263 +256,66 @@ Allow Java and the client through Windows Firewall for ports **8484** and **7575
 
 ```
 HeavenMS/
-├── config.yaml          # Main server configuration (YAML)
-├── launch.bat           # Windows startup script
-├── linux-launch.sh      # Linux startup script
-├── LICENSE              # GNU AGPL v3
-├── cores/               # Runtime dependency JARs
-├── dist/                # Compiled server classes (build output)
-├── docs/                # Feature list, known issues
-├── handbook/            # Item/NPC/mob ID reference text files
-├── logs/                # Runtime logs (gitignored)
-├── scripts/             # JavaScript game scripts
-│   ├── npc/             # NPC dialog and shop scripts
-│   ├── quest/           # Quest scripts
-│   ├── portal/          # Map portal scripts
-│   ├── reactor/         # Reactor interaction scripts
-│   ├── event/           # Event / PQ / expedition scripts
-│   ├── item/            # Usable item scripts
-│   └── map/             # Map entry scripts (onUserEnter, etc.)
-├── sql/                 # Database schema and data
-├── src/                 # Java server source code
-│   ├── client/          # Player, inventory, commands, skills
-│   ├── config/          # YAML config loaders
-│   ├── constants/       # Game and network constants
-│   ├── net/             # Networking, handlers, channels, worlds
-│   ├── provider/        # WZ/XML data providers
-│   ├── scripting/       # Script engine managers
-│   ├── server/          # Maps, life, quests, shops, events
-│   └── tools/           # Packets, crypto, DB, utilities
-├── tools/               # Standalone maintenance utilities (Ant/NetBeans)
-└── wz/                  # Server-side WZ data as XML
-    ├── Base.wz/
-    ├── Character.wz/
-    ├── Effect.wz/
-    ├── Etc.wz/
-    ├── Item.wz/
-    ├── Map.wz/
-    ├── Mob.wz/
-    ├── Morph.wz/
-    ├── Npc.wz/
-    ├── Quest.wz/
-    ├── Reactor.wz/
-    ├── Skill.wz/
-    ├── Sound.wz/
-    └── String.wz/
+├── config.yaml              # Server configuration
+├── launch.bat               # Windows start script (JDK path set by the wizard)
+├── setup-server.bat         # RafaelMS: server setup wizard launcher
+├── setup/                   # RafaelMS: ServerSetupWizard.ps1 (+ logs/, backups/, gitignored)
+├── web/                     # RafaelMS: registration page (register.html, bg.jpg)
+├── installer/               # RafaelMS: Inno Setup client installer script
+├── cores/                   # Runtime dependency JARs
+├── dist/                    # Compiled classes (build output)
+├── docs/                    # Upstream feature list and known issues
+├── handbook/                # Item/NPC/mob ID references
+├── scripts/                 # JavaScript game scripts (npc, quest, portal, reactor, event, item, map)
+├── sql/                     # Database schema and data
+├── src/                     # Java source
+│   ├── net/server/web/      # RafaelMS: RegisterWebServer
+│   └── ...                  # client, config, constants, net, provider, scripting, server, tools
+├── tools/                   # Upstream maintenance utilities
+└── wz/                      # Server-side WZ data as XML
 ```
-
-### Architecture overview
 
 ```mermaid
 flowchart LR
-    Client["v83 Client\n(localhost)"]
-    Login["Login Server\n:8484"]
-    World["World Server"]
-    Ch1["Channel :7575"]
-    ChN["Channel :7575+N"]
-    DB[("MySQL\nheavenms")]
-    WZ["wz/ XML data"]
-    Scripts["scripts/ JS"]
+    Client["v83 client<br/>+ Ezorsia dinput8.dll"]
+    Web["Registration page<br/>:80"]
+    Login["Login server<br/>:8484"]
+    Ch["Channels<br/>:7575+"]
+    DB[("MySQL<br/>heavenms")]
 
-    Client --> Login
-    Login --> World
-    World --> Ch1
-    World --> ChN
+    Client -- Register button --> Web
+    Client --> Login --> Ch
+    Web --> DB
     Login --> DB
-    Ch1 --> DB
-    ChN --> DB
-    Ch1 --> WZ
-    Ch1 --> Scripts
+    Ch --> DB
 ```
 
 ---
 
-## Scripting
+## Scripting and WZ Data
 
-Game content is extended through **Rhino JavaScript** files under `scripts/`.
+These work the same as in upstream HeavenMS:
 
-| Directory | Purpose | Example |
-|-----------|---------|---------|
-| `scripts/npc/` | NPC conversations, shops, custom NPCs | `scripts/npc/9000000.js` |
-| `scripts/quest/` | Quest start/progress/complete logic | `scripts/quest/22000.js` |
-| `scripts/portal/` | Map transitions and portals | `scripts/portal/guildwaitingenter.js` |
-| `scripts/reactor/` | Reactor hit actions | `scripts/reactor/1021000.js` |
-| `scripts/event/` | PQ, expedition, and event instances | `scripts/event/HenesysPQ.js` |
-| `scripts/item/` | Custom usable item behavior | `scripts/item/removethorns.js` |
-| `scripts/map/` | Map entry hooks | `scripts/map/onUserEnter/startEreb.js` |
-
-Reload scripts in-game without restart using GM commands such as `!reloadevents`, `!reloadportals`, and `!reloadmap`.
-
----
-
-## Development Tools
-
-The `tools/` directory contains standalone Java utilities for WZ validation, drop data generation, quest auditing, and more. Each tool is a small NetBeans/Ant project with its own `build.xml`.
-
-| Tool | Purpose |
-|------|---------|
-| `MapleMobBookUpdate` | Sync Monster Book drops from DB to WZ XML |
-| `MapleMesoFetcher` | Generate meso drop data for overworld mobs |
-| `MapleArrowFetcher` | Update arrow drop quantities |
-| `MapleBossHpBarFetcher` | Find mobs missing boss HP bar metadata |
-| `MapleDojoUpdater` | Patch dojo map script references |
-| `MapleEquipmentOmnileveler` | Add equipment level data to WZ |
-| `MapleCodeCouponGenerator` | Generate coupon codes in DB |
-| `MapleQuestlineFetcher` | Find quests missing script files |
-| `MapleInvalidItemIdFetcher` | Detect invalid item IDs in DB |
-| `MapleWorldmapChecker` | Validate world map tooltips |
-
-Build a tool by opening its folder in NetBeans or running Ant from that directory. See [`docs/feature_list.md`](docs/feature_list.md) for the complete tool list.
-
----
-
-## Networking and Ports
-
-| Service | Port | Protocol |
-|---------|------|----------|
-| Login server | **8484** | TCP |
-| Channel 1 | **7575** | TCP |
-| Channel 2 | **7576** | TCP |
-| Channel N | **7575 + (N − 1)** | TCP |
-
-### Local play
-
-Set `HOST: 127.0.0.1` in `config.yaml`. No port forwarding required.
-
-### LAN / Internet play
-
-1. Set `HOST` to your machine's LAN or public IP.
-2. Forward ports **8484** and **7575 through 7575 + (channels − 1)** on your router.
-3. Hex-edit the client localhost if not connecting locally.
-4. Add firewall rules for the client and Java.
-
-Hamachi or other VPN tunneling works as an alternative to port forwarding.
-
----
-
-## Administration
-
-### GM commands
-
-Type `@commands` in all-chat to list commands available for your character's GM level. GM levels range from 0 (player-accessible) through 6 (full server admin).
-
-To promote a character, set the `gm` column in the `characters` table while the character is offline:
-
-```sql
-UPDATE characters SET gm = 6 WHERE name = 'YourCharacterName';
-```
-
-### Useful GM commands
-
-| Command | Level | Description |
-|---------|-------|-------------|
-| `@help` | 0+ | Command help |
-| `@rates` | 0+ | Show current rates |
-| `@ranks` | 0+ | Server rankings |
-| `@warp` | 2+ | Warp to map or player |
-| `@item` | 2+ | Spawn items |
-| `@spawn` | 3+ | Spawn mobs |
-| `@notice` | 3+ | Server notice |
-| `@exprate` | 4+ | Change EXP rate |
-| `@shutdown` | 6 | Shut down server |
-
-### Logs
-
-Runtime logs are written under `logs/` (excluded from git). Check here when debugging crashes, script errors, or packet issues.
-
----
-
-## WZ Data and Synchronization
-
-The server reads WZ content from **`wz/`** as exported XML (set via `-Dwzpath=wz`).
-
-### Editing workflow
-
-1. Edit client WZ files with **HaRepacker 4.2.4** using encryption **GMS (old)**.
-2. Save changes to the client WZ folder.
-3. Re-export changed nodes to the server's `wz/` XML using HaRepacker's **Private Server** export option.
-
-**Important:** Keep client WZ and server XML in sync. Mixing stock v83 files with partial HeavenMS edits often causes subtle bugs.
-
-### Client → server vs server → client
-
-- **Client → server** reimport is generally safe.
-- **Server → client** reimport can cause client-side issues if done carelessly. Only reimport nodes you understand.
-
-### Monster Book example
-
-See the original HeavenMS docs and `tools/MapleMobBookUpdate` for updating Monster Book drop data from the database into both server XML and client WZ.
+- **Scripts.** Rhino JavaScript under `scripts/` (npc, quest, portal, reactor, event, item, map).
+- **WZ data.** The server reads XML from `wz/`. Edit client WZ files with HaRepacker 4.2.4 (encryption **GMS (old)**), then re-export the changed nodes to `wz/` with the **Private Server** export, so client and server stay in sync.
+- **Tools.** Standalone Java utilities in `tools/`, each with its own `build.xml`.
 
 ---
 
 ## Known Issues
 
-HeavenMS is a community emulator and is **not production-stable out of the box**. Notable issues include:
-
-- Deadlocks may appear after long uptime with many players online
-- Some skills display incorrectly to third parties (crits, stuns, close-range magic)
-- Boss HP bar flickering when multiple bosses are present
-- Cygnus Wind Archer Final Attack not functional
-- Steal skill does not remove loot from the mob drop pool
-- MTS is not fully implemented (`USE_MTS: false` by default)
-
-See [`docs/issues.txt`](docs/issues.txt) for the full list.
+- **Upstream issues.** Possible deadlocks after long uptime, some skills shown wrong to other players, Steal not removing loot, MTS incomplete. Full list: [`docs/issues.txt`](docs/issues.txt).
+- **Client.** Full screen isn't supported (see [Client notes](#client-notes)).
+- **Registration.** The page uses plain HTTP, so passwords cross the network unencrypted. Put a TLS reverse proxy in front for public servers.
 
 ---
 
-## HeavenClient
+## Credits and License
 
-An open-source v83 client continuation is maintained separately:
+**HeavenMS** by Ronan C. P. Lana (head developer), Vcoc, Thora, GabrielSin, Masterrulax, MedicOP, and patches from shavit, kolakcc, Dragohe4rt, Jayd, Ubaware and many others. It is derived from the OdinMS / MapleSolaxia lineage. Upstream: https://github.com/ronancpl/HeavenMS
 
-- **HeavenClient:** https://github.com/ryantpayton/HeavenClient
+**MapleEzorsia v2** provides the client-side `dinput8.dll`.
 
-HeavenClient builds on SYJourney's JourneyClient and adds higher resolution support, UI improvements, and ongoing client-side fixes.
+RafaelMS is licensed under the **GNU AGPL v3.0** ([`LICENSE`](LICENSE)), like HeavenMS. It must not be sold, and the original authors' credit must be kept. The RafaelMS changes are listed in [What RafaelMS adds](#what-rafaelms-adds).
 
----
-
-## Contributing and Support
-
-### Community
-
-- **Discord:** https://discord.gg/Q7wKxHX
-- **Project survey / visualizations:** https://heavenms-survey.home.blog/2019/12/24/project-visualizations/
-
-### Contributing
-
-1. Fork the repository.
-2. Create a focused branch for your change.
-3. Match existing code style and conventions.
-4. Test locally against the provided WZ set.
-5. Open a pull request with a clear description.
-
-Bug reports, code patches, and documentation improvements are welcome.
-
----
-
-## License and Disclaimer
-
-### License
-
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [`LICENSE`](LICENSE) for the full text.
-
-You may install, use, modify, and redistribute this software **provided that**:
-
-- It is **not sold or commercially traded**
-- **Credit to original authors is preserved**
-- Derivative works comply with AGPL terms
-
-### Usage terms
-
-- HeavenMS is **open-source** and intended for **non-commercial**, nostalgic, local entertainment.
-- **MapleStory** is the property of Wizet/Nexon. Support the official game.
-- HeavenMS staff has **no intention** to operate a public official server with this source. **Do not fall for scams** claiming to be an official HeavenMS service.
-
-### Stability notice
-
-This source is **not guaranteed stable** for long-running public servers without additional deadlock review, monitoring, and maintenance. Use at your own risk.
-
----
-
-<p align="center">
-  If this project helped you, consider starring the repository.
-</p>
+MapleStory and all related IP belong to **Wizet / Nexon**. This is a non-commercial community project and is not affiliated with Nexon.
