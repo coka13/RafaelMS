@@ -141,3 +141,13 @@
 
 /out
 *.onetoc2
+
+# Server setup wizard output (backups contain account data)
+setup/logs/
+setup/backups/
+*.bak-*
+
+
+# Installer build output and redistributables (too large for git)
+installer/Output/
+installer/redist/

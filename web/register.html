@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RafaelMS - Create Account</title>
+<style>
+  :root {
+    --ink: #3b2a14;
+    --muted: #7a6446;
+    --card: rgba(255, 250, 238, 0.94);
+    --line: #d9c49a;
+    --accent: #f08a1c;
+    --accent-dark: #c96a07;
+    --ok: #2f8a3a;
+    --err: #b8332a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    color: var(--ink);
+    background: #7fb6e6 url("bg.jpg") center / cover no-repeat fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--card);
+    border: 3px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(40, 25, 5, 0.35);
+    padding: 28px 26px 22px;
+  }
+  h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 30px;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-shadow: 2px 2px 0 #fff, 3px 3px 0 var(--line);
+  }
+  .sub { text-align: center; margin: 4px 0 20px; color: var(--muted); font-size: 14px; }
+  label { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 5px; }
+  label small { font-weight: 400; color: var(--muted); }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 2px solid var(--line);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--ink);
+    outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(#f9a640, var(--accent));
+    border: 2px solid var(--accent-dark);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.06); }
+  button:disabled { opacity: .6; cursor: wait; }
+  .msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: 9px; font-size: 14px; text-align: center; }
+  .msg.ok { display: block; background: #e3f4e4; color: var(--ok); border: 1px solid #9fd2a4; }
+  .msg.err { display: block; background: #fbe6e4; color: var(--err); border: 1px solid #e7a8a2; }
+  .foot { margin-top: 16px; text-align: center; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <form class="card" id="form" autocomplete="off" novalidate>
+    <h1>RafaelMS</h1>
+    <p class="sub">Create your account</p>
+
+    <label for="username">Username <small>(4-12 letters or numbers)</small></label>
+    <input id="username" name="username" maxlength="12" required>
+
+    <label for="password">Password <small>(6-12 characters)</small></label>
+    <input id="password" name="password" type="password" maxlength="12" required>
+
+    <label for="confirm">Confirm password</label>
+    <input id="confirm" name="confirm" type="password" maxlength="12" required>
+
+    <label for="email">E-mail <small>(optional)</small></label>
+    <input id="email" name="email" type="email" maxlength="45">
+
+    <button id="submit" type="submit">Create account</button>
+    <div class="msg" id="msg" role="status"></div>
+
+    <p class="foot">After registering, log in with these details in the game client.</p>
+  </form>
+
+<script>
+  var form = document.getElementById('form');
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('submit');
+
+  function show(ok, text) {
+    msg.className = 'msg ' + (ok ? 'ok' : 'err');
+    msg.textContent = text;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var u = form.username.value.trim(), p = form.password.value, c = form.confirm.value;
+    if (!/^[A-Za-z0-9]{4,12}$/.test(u)) return show(false, 'Username must be 4-12 letters or numbers.');
+    if (p.length < 6 || p.length > 12) return show(false, 'Password must be 6-12 characters.');
+    if (p !== c) return show(false, 'Passwords do not match.');
+
+    var body = ['username', 'password', 'confirm', 'email'].map(function (k) {
+      return k + '=' + encodeURIComponent(k === 'username' ? u : form[k].value);
+    }).join('&');
+
+    btn.disabled = true;
+    var xhr = new XMLHttpRequest();   // XHR instead of fetch: works in the older browsers some players use
+    xhr.open('POST', 'register');
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onload = function () {
+      btn.disabled = false;
+      var r;
+      try { r = JSON.parse(xhr.responseText); } catch (err) { r = { ok: false, message: 'Unexpected server response.' }; }
+      show(r.ok, r.message);
+      if (r.ok) form.reset();
+    };
+    xhr.onerror = function () {
+      btn.disabled = false;
+      show(false, 'Could not reach the server. Please try again.');
+    };
+    xhr.send(body);
+  });
+</script>
+</body>
+</html>

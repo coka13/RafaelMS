@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `nick` varchar(20) DEFAULT NULL,
   `mute` int(1) DEFAULT '0',
   `email` varchar(45) DEFAULT NULL,
+  `webregistered` tinyint(1) NOT NULL DEFAULT '0',
   `ip` text,
   `rewardpoints` int(11) NOT NULL DEFAULT '0',
   `votepoints` int(11) NOT NULL DEFAULT '0',

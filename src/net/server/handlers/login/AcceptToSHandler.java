@@ -22,6 +22,10 @@ public final class AcceptToSHandler extends AbstractMaplePacketHandler {
             c.disconnect(false, false);//Client dc's but just because I am cool I do this (:
             return;
         }
+        if (!LoginPasswordHandler.isLoginAllowed(c.getAccID())) {   // account not created on the website
+            c.announce(MaplePacketCreator.getLoginFailed(5));
+            return;
+        }
         if (c.finishLogin() == 0) {
             c.announce(MaplePacketCreator.getAuthSuccess(c));
         } else {

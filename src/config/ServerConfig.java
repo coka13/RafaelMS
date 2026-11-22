@@ -31,6 +31,9 @@ public class ServerConfig {
 
     public boolean AUTOMATIC_REGISTER;
     public boolean BCRYPT_MIGRATION;
+    public boolean WEB_REGISTER;
+    public int WEB_PORT;
+    public boolean WEB_REGISTER_REQUIRED;
     public boolean COLLECTIVE_CHARSLOT;
     public boolean DETERRED_MULTICLIENT;
 

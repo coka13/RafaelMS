@@ -953,6 +953,8 @@ public class Server {
         }
         
         System.out.println("Listening on port 8484\r\n\r\n");
+
+        net.server.web.RegisterWebServer.start();
         
         System.out.println("HeavenMS is now online.\r\n");
         online = true;
@@ -1938,6 +1940,7 @@ public class Server {
         
         System.out.println("Worlds + Channels are offline.");
         acceptor.unbind();
+        net.server.web.RegisterWebServer.stop();
         acceptor = null;
         if (!restart) {  // shutdown hook deadlocks if System.exit() method is used within its body chores, thanks MIKE for pointing that out
             new Thread(new Runnable() {

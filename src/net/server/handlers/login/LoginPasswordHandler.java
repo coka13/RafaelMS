@@ -143,6 +143,11 @@ public final class LoginPasswordHandler implements MaplePacketHandler {
                 return;
             }
         }
+        // Password was right (0, or 23 = must accept the ToS first): still refuse accounts not made on the website
+        if ((loginok == 0 || loginok == 23) && !isLoginAllowed(c.getAccID())) {
+            c.announce(MaplePacketCreator.getLoginFailed(5));   // "not a registered ID": create the account on the website
+            return;
+        }
         if (loginok == 3) {
             c.announce(MaplePacketCreator.getPermBan(c.getGReason()));//crashes but idc :D
             return;
@@ -155,6 +160,30 @@ public final class LoginPasswordHandler implements MaplePacketHandler {
             login(c);
         } else {
             c.announce(MaplePacketCreator.getLoginFailed(7));
+        }
+    }
+
+    // WEB_REGISTER_REQUIRED: only accounts created on the registration website (webregistered = 1) may log in.
+    public static boolean isLoginAllowed(int accountId) {
+        return !YamlConfig.config.server.WEB_REGISTER_REQUIRED || isWebRegistered(accountId);
+    }
+
+    private static boolean isWebRegistered(int accountId) {
+        Connection con = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            con = DatabaseConnection.getConnection();
+            ps = con.prepareStatement("SELECT webregistered FROM accounts WHERE id = ?");
+            ps.setInt(1, accountId);
+            rs = ps.executeQuery();
+            return rs.next() && rs.getInt(1) == 1;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;   // fail closed
+        } finally {
+            try { if (rs != null) rs.close(); } catch (SQLException ignored) {}
+            disposeSql(con, ps);
         }
     }
 

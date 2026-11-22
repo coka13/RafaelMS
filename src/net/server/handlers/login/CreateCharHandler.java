@@ -74,18 +74,11 @@ public final class CreateCharHandler extends AbstractMaplePacketHandler {
 			}
 		}
                 
-                int status;
-                if (job == 0) { // Knights of Cygnus
-			status = NoblesseCreator.createCharacter(c, name, face, hair + haircolor, skincolor, top, bottom, shoes, weapon, gender);
-		} else if (job == 1) { // Adventurer
-			status = BeginnerCreator.createCharacter(c, name, face, hair + haircolor, skincolor, top, bottom, shoes, weapon, gender);
-		} else if (job == 2) { // Aran
-			status = LegendCreator.createCharacter(c, name, face, hair + haircolor, skincolor, top, bottom, shoes, weapon, gender);
-		} else {
-			c.announce(MaplePacketCreator.deleteCharResponse(0, 9));
-			return;
-		}
-                
+                // Knights of Cygnus (job 0) and Aran (job 2) are disabled on this server. Their buttons are
+                // hidden in the client's UI.wz, but the race screen can still start on one of them, so
+                // every request is created as an Explorer (refusing it left the client stuck).
+                int status = BeginnerCreator.createCharacter(c, name, face, hair + haircolor, skincolor, top, bottom, shoes, weapon, gender);
+
                 if (status == -2) {
                         c.announce(MaplePacketCreator.deleteCharResponse(0, 9));
                 }
