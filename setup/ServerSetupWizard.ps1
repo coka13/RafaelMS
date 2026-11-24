@@ -475,6 +475,19 @@ function Step-Database {
     Write-Log "Database now has $($after.Tables) tables" Ok
 }
 
+function Step-SchemaMigrations {
+    Write-Log 'Database schema migrations' Step
+    $r = Invoke-MySql -Sql "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$DbName' AND TABLE_NAME='accounts' AND COLUMN_NAME='webregistered';"
+    if ($r.Code -ne 0) { throw (Get-MySqlError $r) }
+    if ($r.Out.Trim() -eq '0') {
+        $r = Invoke-MySql -Sql "ALTER TABLE $DbName.accounts ADD COLUMN webregistered TINYINT(1) NOT NULL DEFAULT 0 AFTER email;"
+        if ($r.Code -ne 0) { throw "Could not add accounts.webregistered: $(Get-MySqlError $r)" }
+        Write-Log 'Added accounts.webregistered for web account registration' Ok
+    } else {
+        Write-Log 'Schema is up to date' Ok
+    }
+}
+
 function Step-Backup {
     if (-not $S.MySqlDump) { throw "mysqldump.exe was not found, so the existing '$DbName' database cannot be backed up. Choose 'Keep existing data' or install the MySQL client tools." }
     New-Item -ItemType Directory -Force -Path $BackupDir | Out-Null
@@ -705,6 +718,7 @@ function Invoke-Setup {
         @{ Name = 'MySQL service';   Fn = { Step-StartService } },
         @{ Name = 'Connect';         Fn = { Step-Connect } },
         @{ Name = 'Database';        Fn = { Step-Database } },
+        @{ Name = 'Schema migration'; Fn = { Step-SchemaMigrations } },
         @{ Name = 'sql_mode';        Fn = { Step-SqlMode } },
         @{ Name = 'DB account';      Fn = { Step-DbAccount } },
         @{ Name = 'config.yaml';     Fn = { Step-Config } },
@@ -991,12 +1005,19 @@ function Install-Missing {
     $form.Cursor = 'WaitCursor'
     try {
         $wg = (Get-Command winget.exe).Source
-        $common = '--exact --accept-package-agreements --accept-source-agreements --disable-interactivity'
+        $common = '--exact --source winget --accept-package-agreements --accept-source-agreements --disable-interactivity'
         if (-not $S.Jdk) {
             $lblReq.Text = 'Installing Eclipse Temurin 8 JDK with winget...'; Pump
             $r = Invoke-Proc -File $wg -Arguments "install --id EclipseAdoptium.Temurin.8.JDK --silent $common"
+            $jdkInstallOutput = $r.Out + "`r`n" + $r.Err
+            if ($r.Code -ne 0 -and $jdkInstallOutput -match 'Installer hash does not match') {
+                $fallbackVersion = '8.0.504.1'
+                $lblReq.Text = "The latest package has a bad winget hash. Retrying Temurin $fallbackVersion..."; Pump
+                $r = Invoke-Proc -File $wg -Arguments "install --id EclipseAdoptium.Temurin.8.JDK --version $fallbackVersion --silent $common"
+                $jdkInstallOutput = $r.Out + "`r`n" + $r.Err
+            }
             if ($r.Code -ne 0) {
-                [void][System.Windows.Forms.MessageBox]::Show("winget could not install the JDK (exit $($r.Code)).`r`n`r`n$(Get-Tail $r.Out 8)", 'Install Java', 'OK', 'Error')
+                [void][System.Windows.Forms.MessageBox]::Show("winget could not install the JDK (exit $($r.Code)).`r`n`r`n$(Get-Tail $jdkInstallOutput 8)", 'Install Java', 'OK', 'Error')
             }
         }
         if (-not $S.MySqlExe) {
